@@ -38,7 +38,7 @@ function Finder:action_call(name, ...) self:action(name)(...) end
 
 ---@deprecated
 function Finder:exec_action(...)
-  vim.notify("'exec_action' is deprecated use 'call_action'")
+  vim.notify("'exec_action' is deprecated use 'action_call'")
   self:action_call(...)
 end
 
