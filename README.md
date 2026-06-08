@@ -10,75 +10,168 @@
   <div>
     <img
       alt="License"
-      src="https://img.shields.io/github/license/A7Lavinraj/fyler.nvim?style=for-the-badge&logo=starship&color=ee999f&logoColor=D9E0EE&labelColor=302D41"
-    />
-    <img
-      alt="Stars"
-      src="https://img.shields.io/github/stars/A7Lavinraj/fyler.nvim?style=for-the-badge&logo=starship&color=c69ff5&logoColor=D9E0EE&labelColor=302D41"
+      src="https://img.shields.io/github/license/FylerOrg/fyler.nvim?style=for-the-badge&logo=starship&color=ee999f&logoColor=D9E0EE&labelColor=302D41"
     />
   </div>
 </div>
+<img alt="Image" src="https://github.com/user-attachments/assets/aecb2d68-bf7b-46f1-9f4a-679b4aed0b52" />
 
-<br>
+## Introduction
 
-<div align="center">
-  <img
-    width="1920"
-    height="1080"
-    alt="image"
-    src="https://github.com/user-attachments/assets/036ebf84-0053-4930-ae91-c0ae95bb417d"
-  />
-</div>
+Fyler.nvim is oil.nvim inspired file manager plugin for neovim which can
+manipulate file system like a neovim buffer and provide a proper file-tree
+representation of items.
+
+## Requirements
+
+- Neovim >= 0.11
 
 ## Installation
 
-> [!IMPORTANT]
->
-> Both **Stable** and **Latest** versions are explained on the
-> [WIKI PAGE](https://github.com/A7Lavinraj/fyler.nvim/wiki/installation) in details.
-
-#### Stable
+### [lazy.nvim](https://github.com/folke/lazy.nvim)
 
 ```lua
-{
-  "A7Lavinraj/fyler.nvim",
-  dependencies = { "nvim-mini/mini.icons" },
-  branch = "stable",  -- Use stable branch for production
-  lazy = false, -- Necessary for `default_explorer` to work properly
-  opts = {}
-}
+{ 'FylerOrg/fyler.nvim', opts = {} }
 ```
 
-#### Latest
+### [mini.deps](https://github.com/nvim-mini/mini.deps)
 
 ```lua
-{
-  "A7Lavinraj/fyler.nvim",
-  dependencies = { "nvim-mini/mini.icons" },
-  lazy = false, -- Necessary for `default_explorer` to work properly
-  opts = {}
-}
+require('mini.deps').add('FylerOrg/fyler.nvim')
+require('fyler').setup({})
+```
+
+### [vim.pack](https://neovim.io/doc/user/pack)
+
+```lua
+vim.pack.add({ 'https://github.com/FylerOrg/fyler.nvim' })
+```
+
+## Setup
+
+```lua
+local fyler = require('fyler')
+
+fyler.setup({
+  -- Whether to skip confirmation for "simple" mutations.
+  -- A simple mutation has at most:
+  -- - 1 copy operation
+  -- - 1 delete operation
+  -- - 1 move operation
+  -- - 5 create operations
+  auto_confirm_simple_mutation = false,
+  -- Restricts cursor from moving outside editable region
+  bound_cursor = true,
+  -- Follow current file
+  follow_current_file = true,
+  -- Extensions
+  extensions = {},
+  -- Event hooks
+  hooks = {},
+  integrations = {},
+  -- Buffer kind to use globally.
+  kind = 'replace',
+  -- Per-kind buffer configuration.
+  kind_presets = {
+    floating = {
+      -- Border style (see: :h winborder)
+      border = 'single',
+      -- Size of buffer:
+      -- - string with '%' for relative (e.g. '70%')
+      -- - number for absolute
+      height = '80%',
+      mappings = {
+        n = { ['<CR>'] = { action = 'select', args = { close = true } } },
+      },
+      width = '60%',
+      -- Horizontal alignment: 'start' | 'center' | 'end'
+      col = 'center',
+      -- Vertical alignment: 'start' | 'center' | 'end'
+      row = 'center',
+    },
+    replace = {
+      mappings = {
+        n = { ['<CR>'] = { action = 'select', args = { close = true } } },
+      },
+    },
+    split_above = {
+      height = '50%',
+      win_opts = { winfixheight = true },
+    },
+    split_above_all = {
+      height = '50%',
+      win_opts = { winfixheight = true },
+    },
+    split_below = {
+      height = '50%',
+      win_opts = { winfixheight = true },
+    },
+    split_below_all = {
+      height = '50%',
+      win_opts = { winfixheight = true },
+    },
+    split_left = {
+      width = '25%',
+      win_opts = { winfixwidth = true },
+    },
+    split_left_most = {
+      width = '25%',
+      win_opts = { winfixwidth = true },
+    },
+    split_right = {
+      width = '25%',
+      win_opts = { winfixwidth = true },
+    },
+    split_right_most = {
+      width = '25%',
+      win_opts = { winfixwidth = true },
+    },
+  },
+  mappings = {
+    n = {
+      ['-'] = { action = 'visit', args = { parent = true } },
+      ['.'] = { action = 'visit', args = { cursor = true } },
+      ['<BS>'] = { action = 'shrink', args = { parent = true } },
+      ['<C-r>'] = { action = 'refresh' },
+      ['<C-s>'] = { action = 'select', args = { split = true } },
+      ['<C-t>'] = { action = 'select', args = { tabedit = true } },
+      ['<C-v>'] = { action = 'select', args = { vsplit = true } },
+      ['<CR>'] = { action = 'select' },
+      ['='] = { action = 'visit' },
+      ['g.'] = { action = 'toggle_ui', args = { 'hidden_items' } },
+      ['gi'] = { action = 'toggle_ui', args = { 'indent_guides' } },
+      ['q'] = { action = 'close' },
+    },
+  },
+  -- UI options
+  ui = {
+    -- Whether to draw indent guides at each depth level.
+    hidden_items = {
+      -- Toggleable pre-defined switches (e.g. 'dotfiles' to hide files starting with a dot).
+      switches = { 'dotfiles' },
+      -- Toggleable patterns (Lua patterns matched against the full path).
+      patterns = {},
+      -- Always visible items matching these patterns, even if they would normally be hidden.
+      always_visible = {},
+      -- Always hide items matching these patterns, even if they would normally be visible.
+      always_hidden = {},
+    },
+    indent_guides = false,
+  },
+})
 ```
 
 ## Usage
 
-You can either open fyler by using the `Fyler` command:
+Open Fyler using the `:Fyler` command:
 
 ```vim
-:Fyler             " Open the finder
-:Fyler dir=<cwd>   " Use a different directory path
-:Fyler kind=<kind> " Open specified window kind directly
-
-" Map it to a key
-nnoremap <leader>e <cmd>Fyler<cr>
+:Fyler                    " Open the finder
+:Fyler root_path=<path>   " Use a different directory path
+:Fyler kind=<buffer_kind> " Open specified kind directly
 ```
 
-```lua
--- Or via lua api
-vim.keymap.set("n", "<leader>e", "<cmd>Fyler<cr>", { desc = "Open Fyler View" })
-```
-
-Or using the lua api:
+Open Fyler from Lua:
 
 ```lua
 local fyler = require('fyler')
@@ -90,27 +183,32 @@ fyler.open()
 fyler.open({ kind = "split_left_most" })
 
 -- open with different directory
-fyler.open({ dir = "~" })
+fyler.open({ root_path = "~" })
 
 -- You can map this to a key
-vim.keymap.set("n", "<leader>e", fyler.open, { desc = "Open fyler View" })
+vim.keymap.set("n", "<leader>e", fyler.open, { desc = "Fyler.nvim - Open" })
 
 -- Wrap in a function to pass additional arguments
 vim.keymap.set(
     "n",
     "<leader>e",
     function() fyler.open({ kind = "split_left_most" }) end,
-    { desc = "Open Fyler View" }
+    { desc = "Fyler.nvim - Open" }
 )
 ```
 
+## License
+
+Apache 2.0. See [LICENSE](LICENSE).
+
 > [!NOTE]
-> Run `:help fyler.nvim` OR visit [wiki pages](https://github.com/A7Lavinraj/fyler.nvim/wiki) for more detailed explanation and live showcase.
+> Run `:help fyler.nvim` OR visit [wiki pages](https://github.com/FylerOrg/fyler.nvim/wiki) for more detailed explanation and live showcase.
 
 ### Credits
 
 - [**GrugFar**](https://github.com/MagicDuck/grug-far.nvim)
 - [**Mini.files**](https://github.com/nvim-mini/mini.files)
+- [**Neo-tree**](https://github.com/nvim-neo-tree/neo-tree.nvim)
 - [**Neogit**](https://github.com/NeogitOrg/neogit)
 - [**Nvim-window-picker**](https://github.com/s1n7ax/nvim-window-picker)
 - [**Oil**](https://github.com/stevearc/oil.nvim)
@@ -120,9 +218,9 @@ vim.keymap.set(
 ---
 
 <h4 align="center">Built with ❤️ for the Neovim community</h4>
-<a href="https://github.com/A7Lavinraj/fyler.nvim/graphs/contributors">
+<a href="https://github.com/FylerOrg/fyler.nvim/graphs/contributors">
   <img
-    src="https://contrib.rocks/image?repo=A7Lavinraj/fyler.nvim&max=750&columns=20"
+    src="https://contrib.rocks/image?repo=FylerOrg/fyler.nvim&max=750&columns=20"
     alt="contributors"
   />
 </a>

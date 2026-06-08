@@ -1,82 +1,70 @@
-local MiniTest = require("mini.test")
+local MiniTest = require('mini.test')
 
-local M = {}
+local util = {}
 
-M.equal = MiniTest.expect.equality
-M.match_pattern = MiniTest.new_expectation(
-  "string matching",
+function util.abspath(...) return util.normpath(vim.fn.fnamemodify(util.joinpath(...), ':p')) end
+
+util.expect = MiniTest.expect
+util.expect.match = MiniTest.new_expectation(
+  'string matching',
   function(str, pattern) return str:find(pattern) ~= nil end,
-  function(str, pattern) return string.format("Pattern: %s\nObserved string: %s", vim.inspect(pattern), str) end
+  function(str, pattern) return string.format('Pattern: %s\nObserved string: "%s"', vim.inspect(pattern), str) end
 )
 
-M.new_set = MiniTest.new_set
+function util.get_tmpdir(name, children)
+  local get_testpath = function(...) return util.abspath(util.joinpath('tmp', ...)) end
 
-function M.new_neovim()
-  local nvim = MiniTest.new_child_neovim()
+  local temp_dir = get_testpath(name or 'data')
+  vim.fn.mkdir(temp_dir, 'p')
 
-  nvim.setup = function(opts)
-    nvim.restart({
-      "-u",
-      "tests/minimal_init.lua",
-      "-c",
-      string.format("lua require('fyler').setup(%s)", vim.inspect(opts or {})),
-    })
-    nvim.set_size(20, 80)
-  end
+  MiniTest.finally(function() vim.fn.delete(temp_dir, 'rf') end)
 
-  nvim.set_size = function(lines, columns)
-    if type(lines) == "number" then nvim.o.lines = lines end
-
-    if type(columns) == "number" then nvim.o.columns = columns end
-  end
-
-  nvim.set_lines = function(...) nvim.api.nvim_buf_set_lines(...) end
-
-  nvim.get_lines = function(...) return nvim.api.nvim_buf_get_lines(...) end
-
-  nvim.forward_lua = function(fun_str)
-    local lua_cmd = fun_str .. "(...)"
-    return function(...) return nvim.lua_get(lua_cmd, { ... }) end
-  end
-
-  nvim.module_load = function(name, config)
-    local lua_cmd = ([[require('%s').setup(...)]]):format(name)
-    nvim.lua(lua_cmd, { config })
-  end
-
-  nvim.module_unload = function(name)
-    nvim.lua(([[package.loaded['%s'] = nil]]):format(name))
-    if nvim.fn.exists("#" .. name) == 1 then nvim.api.nvim_del_augroup_by_name(name) end
-  end
-
-  nvim.expect_screenshot = function(opts, path)
-    opts = opts or {}
-    local screenshot_opts = { redraw = opts.redraw }
-    opts.redraw = nil
-    MiniTest.expect.reference_screenshot(nvim.get_screenshot(screenshot_opts), path, opts)
-  end
-
-  nvim.dbg_screen = function()
-    if vim.env.DEBUG then
-      local process_screen = function(arr_2d)
-        local n_lines, n_cols = #arr_2d, #arr_2d[1]
-        local n_digits = math.floor(math.log10(n_lines)) + 1
-        local format = string.format("%%0%dd|%%s", n_digits)
-        local lines = {}
-        for i = 1, n_lines do
-          table.insert(lines, string.format(format, i, table.concat(arr_2d[i])))
-        end
-
-        local prefix = string.rep("-", n_digits) .. "|"
-        local ruler = prefix .. ("---------|"):rep(math.ceil(0.1 * n_cols)):sub(1, n_cols)
-        return string.format("%s\n%s", ruler, table.concat(lines, "\n"))
-      end
-
-      vim.print(string.format("\n%s\n", process_screen(nvim.get_screenshot().text)))
+  for _, path in ipairs(children) do
+    local path_ext = temp_dir .. '/' .. path
+    if vim.endswith(path, '/') then
+      vim.fn.mkdir(path_ext)
+    else
+      vim.fn.writefile({ 'ROOT/' .. path }, path_ext)
     end
   end
 
-  return nvim
+  return temp_dir
 end
 
-return M
+function util.is_windows() return vim.fn.has('win32') == 1 end
+if util.is_windows() then
+  function util.normpath(path) return (path:gsub('\\', '/'):gsub('(.)/$', '%1'):gsub('^(%a):/+([^/])', '%1://%2')) end
+else
+  function util.normpath(path) return (path:gsub('\\', '/'):gsub('(.)/$', '%1')) end
+end
+
+function util.joinpath(...) return table.concat({ ... }, '/') end
+
+function util.new_child_neovim()
+  local child = MiniTest.new_child_neovim()
+
+  function child.setup() child.restart({ '-u', 'tests/minimal_init.lua' }) end
+
+  function child.set_size(lines, columns)
+    if type(lines) == 'number' then child.o.lines = lines end
+    if type(columns) == 'number' then child.o.columns = columns end
+  end
+
+  function child.fwd_lua(fun_str)
+    local lua_cmd = fun_str .. '(...)'
+    return function(...) return child.lua_get(lua_cmd, { ... }) end
+  end
+
+  function child.expect_screenshot(opts, path)
+    opts = opts or {}
+    local screenshot_opts = { redraw = opts.redraw }
+    opts.redraw = nil
+    MiniTest.expect.reference_screenshot(child.get_screenshot(screenshot_opts), path, opts)
+  end
+
+  return child
+end
+
+util.new_set = MiniTest.new_set
+
+return util

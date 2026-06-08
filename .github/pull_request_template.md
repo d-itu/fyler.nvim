@@ -1,1 +1,0 @@
-- [ ] I have read and follow [CONTRIBUTING.md](https://github.com/A7Lavinraj/fyler.nvim/blob/main/CONTRIBUTING.md)

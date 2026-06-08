@@ -1,287 +1,182 @@
-                                                                    *fyler.nvim*
-INTRODUCTION
-
-Fyler.nvim is a Neovim file manager plugin based on buffer-based file editing.
-
-Why choose Fyler.nvim over |oil.nvim|?
-- Provides a tree view.
-- Users can have a full overview of their project without going back and forth
-  between directories.
-
-GETTING STARTED
-
-1. Fyler must be setup correctly before use.
-
-USAGE
-
-Fyler can be used through commands or the Lua API.
-
-COMMANDS
-
-:Fyler dir=... kind=...
-
-Parameters:
-dir    Path to the directory to open
-kind   Display method, one of:
-       - `float`
-       - `replace`
-       - `split_above`
-       - `split_above_all`
-       - `split_below`
-       - `split_below_all`
-       - `split_left`
-       - `split_left_most`
-       - `split_right`
-       - `split_right_most`
-
-LUA API
-
->lua
-    local fyler = require("fyler")
-
-    -- Opens finder view with given options
-    fyler.open({ dir = "...", kind = "..." })
-
-    -- Toggles finder view with given options
-    fyler.toggle({ dir = "...", kind = "..." })
-
-    -- Focuses finder view
-    fyler.focus()
-
-    -- Focuses given file path or alternate buffer
-    fyler.navigate("...")
-<
+Author   : Lavin Raj Mohan <lavinrajmohan@gmail.com>
+Homepage : |https://github.com/FylerOrg/fyler.nvim|
+License  : Apache 2.0
+Tags     : *fyler.nvim* *fyler.txt*
 
 ------------------------------------------------------------------------------
-                                                                  *fyler.config*
-CONFIGURATION
+                                                       *fyler.table-of-contents*
+TABLE OF CONTENTS ~
 
-To setup Fyler put following code anywhere in your neovim runtime:
+1. Introduction                                          |fyler.introduction|
+2. Requirements                                          |fyler.requirements|
+3. Usage                                                        |fyler.usage|
+4. Setup                                                        |fyler.setup|
 
->lua
-  require("fyler").setup()
+------------------------------------------------------------------------------
+                                                            *fyler.introduction*
+INTRODUCTION ~
+
+Fyler.nvim is |oil.nvim| inspired file manager plugin for neovim which can
+manipulate file system like a neovim buffer and provide a proper file-tree
+representation of items.
+
+------------------------------------------------------------------------------
+                                                            *fyler.requirements*
+REQUIREMENTS ~
+
+- Neovim >= 0.11
+
+------------------------------------------------------------------------------
+                                                                   *fyler.usage*
+USAGE ~
+
+Open Fyler using the `:Fyler` command:
+
+>vim
+  :Fyler                    " Open the finder
+  :Fyler root_path=<path>   " Use a different directory path
+  :Fyler kind=<buffer_kind> " Open specified kind directly
 <
 
-CONFIGURATION.DEFAULTS
-
-To know more about plugin customization. visit:
-`https://github.com/A7Lavinraj/fyler.nvim/wiki/configuration`
+Open Fyler from Lua:
 
 >lua
-  function config.defaults()
-    return {
-      -- Hooks are functions automatically called for corresponding events:
-      -- hooks.on_delete:    function(path: string)
-      -- hooks.on_rename:    function(src: string, dst: string)
-      -- hooks.on_highlight: function(src: string, dst: string)
-      hooks = {},
-      -- Integration is a way to hijack generic plugin calls.
-      integrations = {
-        icon = "mini_icons",
-        winpick = "none",
-      },
-      -- View is a plugin component with dedicated window, UI and config
-      views = {
-        finder = {
-          -- Automatically closes after open a file
-          close_on_select = true,
-          -- Skip confirmation for simple operations
-          confirm_simple = false,
-          -- Disables NETRW and take over
-          default_explorer = false,
-          -- Move to trash instead of permanent delete - MACOS not supported
-          delete_to_trash = false,
-          -- Define order of information columns
-          columns_order = { "link", "permission", "size", "git", "diagnostic" },
-          -- Define configuration fo each available information column
-          columns = {
-            git = {
-              enabled = true,
-              symbols = {
-                Untracked = "?",
-                Added = "A",
-                Modified = "M",
-                Deleted = "D",
-                Renamed = "R",
-                Copied = "C",
-                Conflict = "!",
-                Ignored = " ",
-              },
-            },
-            diagnostic = {
-              enabled = true,
-              symbols = {
-                Error = "E",
-                Warn = "W",
-                Info = "I",
-                Hint = "H",
-              },
-            },
-            link = {
-              enabled = true,
-            },
-            permission = {
-              enabled = true,
-            },
-            size = {
-              enabled = true,
-            },
-          },
-          -- Overrides directory icons for vairous state
-          icon = {
-            directory_empty = nil,
-            directory_expanded = nil,
-            directory_collapsed = nil,
-          },
-          -- Defines indentation guides config
-          indentscope = {
-            enabled = true,
-            markers = {
-              { "│", "FylerIndentMarker" },
-              { "└", "FylerIndentMarker" },
-            },
-          },
-          -- Defines key mapping
-          mappings = {
-            ["q"] = "CloseView",
-            ["<CR>"] = "Select",
-            ["<C-t>"] = "SelectTab",
-            ["|"] = "SelectVSplit",
-            ["-"] = "SelectSplit",
-            ["^"] = "GotoParent",
-            ["="] = "GotoCwd",
-            ["."] = "GotoNode",
-            ["#"] = "CollapseAll",
-            ["<BS>"] = "CollapseNode",
-          },
-          -- Defines key mapping options
-          mappings_opts = {
-            nowait = false,
-            noremap = true,
-            silent = true,
-          },
-          -- Automatically focus file in the finder UI
-          follow_current_file = true,
-          -- Automatically updated finder on file system events
-          watcher = {
-            enabled = false,
-          },
-          win = {
-            border = vim.o.winborder == "" and "single" or vim.o.winborder,
-            buf_opts = {
-              bufhidden = "hide",
-              buflisted = false,
-              buftype = "acwrite",
-              expandtab = true,
-              filetype = "fyler",
-              shiftwidth = 2,
-              syntax = "fyler",
-              swapfile = false,
-            },
-            kind = "replace",
-            kinds = {
-              float = {
-                height = "70%",
-                width = "70%",
-                top = "10%",
-                left = "15%",
-              },
-              replace = {},
-              split_above = {
-                height = "70%",
-              },
-              split_above_all = {
-                height = "70%",
-                win_opts = {
-                  winfixheight = true,
-                },
-              },
-              split_below = {
-                height = "70%",
-              },
-              split_below_all = {
-                height = "70%",
-                win_opts = {
-                  winfixheight = true,
-                },
-              },
-              split_left = {
-                width = "30%",
-              },
-              split_left_most = {
-                width = "30%",
-                win_opts = {
-                  winfixwidth = true,
-                },
-              },
-              split_right = {
-                width = "30%",
-              },
-              split_right_most = {
-                width = "30%",
-                win_opts = {
-                  winfixwidth = true,
-                },
-              },
-            },
-            win_opts = {
-              concealcursor = "nvic",
-              conceallevel = 3,
-              cursorline = false,
-              number = false,
-              relativenumber = false,
-              signcolumn = "no",
-              winhighlight = "Normal:FylerNormal,NormalNC:FylerNormalNC",
-              wrap = false,
-            },
-          },
-        },
-      },
-    }
-  end
+  local fyler = require('fyler')
 
+  -- open using defaults
+  fyler.open()
+
+  -- open as a left most split
+  fyler.open({ kind = "split_left_most" })
+
+  -- open with different directory
+  fyler.open({ root_path = "~" })
+
+  -- You can map this to a key
+  vim.keymap.set("n", "<leader>e", fyler.open, { desc = "Fyler.nvim - Open" })
+
+  -- Wrap in a function to pass additional arguments
+  vim.keymap.set(
+      "n",
+      "<leader>e",
+      function() fyler.open({ kind = "split_left_most" }) end,
+      { desc = "Fyler.nvim - Open" }
+  )
 <
+
 ------------------------------------------------------------------------------
                                                                    *fyler.setup*
-INTEGRATIONS.ICON
-
-Icon provider for file and directory icons.
+SETUP ~
 
 >lua
-  integrations = {
-    icon = "mini_icons",        -- nvim-mini/mini.icons (default)
-    icon = "nvim_web_devicons", -- nvim-tree/nvim-web-devicons
-    icon = "vim_nerdfont",      -- lambdalisue/vim-nerdfont
-    icon = "none",              -- disable icons
-  }
+  local fyler = require('fyler')
+
+  fyler.setup({
+    -- Whether to skip confirmation for "simple" mutations.
+    -- A simple mutation has at most:
+    -- - 1 copy operation
+    -- - 1 delete operation
+    -- - 1 move operation
+    -- - 5 create operations
+    auto_confirm_simple_mutation = false,
+    -- Restricts cursor from moving outside editable region
+    bound_cursor = true,
+    -- Follow current file
+    follow_current_file = true,
+    -- Extensions
+    extensions = {},
+    -- Event hooks
+    hooks = {},
+    integrations = {},
+    -- Buffer kind to use globally.
+    kind = 'replace',
+    -- Per-kind buffer configuration.
+    kind_presets = {
+      floating = {
+        -- Border style (see: :h winborder)
+        border = 'single',
+        -- Size of buffer:
+        -- - string with '%' for relative (e.g. '70%')
+        -- - number for absolute
+        height = '80%',
+        mappings = {
+          n = { ['<CR>'] = { action = 'select', args = { close = true } } },
+        },
+        width = '60%',
+        -- Horizontal alignment: 'start' | 'center' | 'end'
+        col = 'center',
+        -- Vertical alignment: 'start' | 'center' | 'end'
+        row = 'center',
+      },
+      replace = {
+        mappings = {
+          n = { ['<CR>'] = { action = 'select', args = { close = true } } },
+        },
+      },
+      split_above = {
+        height = '50%',
+        win_opts = { winfixheight = true },
+      },
+      split_above_all = {
+        height = '50%',
+        win_opts = { winfixheight = true },
+      },
+      split_below = {
+        height = '50%',
+        win_opts = { winfixheight = true },
+      },
+      split_below_all = {
+        height = '50%',
+        win_opts = { winfixheight = true },
+      },
+      split_left = {
+        width = '25%',
+        win_opts = { winfixwidth = true },
+      },
+      split_left_most = {
+        width = '25%',
+        win_opts = { winfixwidth = true },
+      },
+      split_right = {
+        width = '25%',
+        win_opts = { winfixwidth = true },
+      },
+      split_right_most = {
+        width = '25%',
+        win_opts = { winfixwidth = true },
+      },
+    },
+    mappings = {
+      n = {
+        ['-'] = { action = 'visit', args = { parent = true } },
+        ['.'] = { action = 'visit', args = { cursor = true } },
+        ['<BS>'] = { action = 'shrink', args = { parent = true } },
+        ['<C-r>'] = { action = 'refresh' },
+        ['<C-s>'] = { action = 'select', args = { split = true } },
+        ['<C-t>'] = { action = 'select', args = { tabedit = true } },
+        ['<C-v>'] = { action = 'select', args = { vsplit = true } },
+        ['<CR>'] = { action = 'select' },
+        ['='] = { action = 'visit' },
+        ['g.'] = { action = 'toggle_ui', args = { 'hidden_items' } },
+        ['gi'] = { action = 'toggle_ui', args = { 'indent_guides' } },
+        ['q'] = { action = 'close' },
+      },
+    },
+    -- UI options
+    ui = {
+      -- Whether to draw indent guides at each depth level.
+      hidden_items = {
+        -- Toggleable pre-defined switches (e.g. 'dotfiles' to hide files starting with a dot).
+        switches = { 'dotfiles' },
+        -- Toggleable patterns (Lua patterns matched against the full path).
+        patterns = {},
+        -- Always visible items matching these patterns, even if they would normally be hidden.
+        always_visible = {},
+        -- Always hide items matching these patterns, even if they would normally be visible.
+        always_hidden = {},
+      },
+      indent_guides = false,
+    },
+  })
 <
-
-INTEGRATIONS.WINPICK
-
-Window picker for selecting which window to open files in (split kinds).
-
->lua
-  integrations = {
-    -- Use winpick = "<provider>" or { provider = "<provider>", opts = {} }
-    winpick = "none",
-    winpick = "snacks",
-    winpick = "builtin",
-    winpick = "nvim-window-picker",
-    winpick = function(win_filter, on_submit, opts)
-      -- custom logic...
-    end)
-  }
-<
-
-Custom winpick function example:
-
->lua
-  integrations = {
-    winpick = function(win_filter, on_submit, opts)
-      on_submit(require("window-picker").pick_window())
-    end,
-    opts = {}, -- this is what is passed as opts to the above function
-  }
-<
-
  vim:tw=78:ts=8:noet:ft=help:norl:

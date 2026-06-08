@@ -1,11 +1,4 @@
-# Temporary test directory
-.temp
-
-# Quick testing directory for local development
-.scratch
-
-# Take notes for any potential thing to remember
-.notes
-
-# Docs helptags file
-doc/tags
+tmp
+scratch
+tags
+todos

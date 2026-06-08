@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches-ignore: [stable]
+  pull_request:
+    branches-ignore: [stable]
+
+jobs:
+  test:
+    name: Test
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        neovim_version: ["v0.11.0", "nightly"]
+        include:
+          - os: macos-latest
+            neovim_version: v0.11.0
+          - os: windows-latest
+            neovim_version: v0.11.0
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup neovim
+        uses: rhysd/action-setup-vim@v1
+        with:
+          neovim: true
+          version: ${{ matrix.neovim_version }}
+
+      - name: Run tests
+        run: make tests
+
+  format-lint-docs:
+    name: Format, lint, and docs
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Neovim
+        uses: rhysd/action-setup-vim@v1
+        with:
+          neovim: true
+          version: v0.11.0
+
+      - uses: JohnnyMorganz/stylua-action@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          version: latest
+          args: false
+
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: selene
+
+      - name: Format, lint, and generate documentation
+        run: make --silent format lint docs
+
+      - name: Check for changes
+        run: if [[ -n $(git status -s) ]]; then exit 1; fi

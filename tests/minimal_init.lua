@@ -1,10 +1,34 @@
 -- Immediately add plugins to runtimepath
 vim.opt.runtimepath:prepend(vim.fn.getcwd())
-vim.opt.runtimepath:prepend(vim.fs.joinpath(vim.fn.getcwd(), ".temp", "deps", "mini.icons"))
-vim.opt.runtimepath:prepend(vim.fs.joinpath(vim.fn.getcwd(), ".temp", "deps", "mini.test"))
+vim.opt.runtimepath:prepend(vim.fs.joinpath(vim.fn.getcwd(), 'tmp', 'deps', 'mini.test'))
 
--- Clear all highlights(better for screenshots)
-vim.cmd("hi! clear")
+-- Clear all highlights (better for screenshots)
+vim.cmd('hi! clear')
+
+local shorten_path = function(bufname)
+  bufname = bufname:gsub('\\', '/')
+  bufname = bufname:gsub('(fyler%-%w+)://.+/tmp/data', '%1://ROOT')
+  bufname = bufname:gsub('^.+/tmp/data', 'ROOT')
+  return bufname
+end
+
+function _G.custom_statusline() return shorten_path(vim.fn.expand('%:p')) .. ' %l,%c%V' end
+
+function _G.custom_tabline()
+  local s = ''
+  for i = 1, vim.fn.tabpagenr('$') do
+    local winnr = vim.fn.tabpagewinnr(i)
+    local bufnr = vim.fn.tabpagebuflist(i)[winnr]
+    local label = shorten_path(vim.fn.bufname(bufnr))
+    if label == '' then label = '[No Name]' end
+    if i == vim.fn.tabpagenr() then
+      s = s .. '%#TabLineSel#' .. label .. ' '
+    else
+      s = s .. '%#TabLine#' .. label .. ' '
+    end
+  end
+  return s .. '%#TabLineFill#'
+end
 
 -- stylua: ignore
 for o, v in pairs({
@@ -12,31 +36,10 @@ for o, v in pairs({
   backup      = false,
   cmdheight   = 0,
   fillchars   = { eob = " " },
-  laststatus  = 0,
+  laststatus  = 3,
   readonly    = true,
-  statusline  = " ",
+  statusline  = '%!v:lua.custom_statusline()',
   swapfile    = false,
-  tabline     = " ",
+  tabline     = '%!v:lua.custom_tabline()',
   writebackup = false,
 }) do vim.opt[o] = v end
-
-local mock_title = function(x)
-  if type(x) ~= "string" then return x end
-  return x:gsub("^.*/.temp/data", "MOCK_ROOT/data")
-end
-
-_G.nvim_open_win_orig = vim.api.nvim_open_win
-
-vim.api.nvim_open_win = function(buf_id, enter, config)
-  config.title = mock_title(config.title)
-  return nvim_open_win_orig(buf_id, enter, config)
-end
-
-_G.nvim_win_set_config_orig = vim.api.nvim_win_set_config
-
-vim.api.nvim_win_set_config = function(win_id, config)
-  config.title = mock_title(config.title)
-  return nvim_win_set_config_orig(win_id, config)
-end
-
-_G.FYLER_TEMP_DIR = vim.fs.joinpath(vim.uv.cwd(), ".temp")
