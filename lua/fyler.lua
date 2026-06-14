@@ -219,6 +219,11 @@ Fyler.setup = function(user_config)
     if inst then inst:close() end
   end
 
+  Fyler.getcwd = function()
+    local inst = finder.instance_get_or_nil()
+    if inst then return inst.state.pseudo_root_path end
+  end
+
   Fyler.open = function(opts) finder.instance_get(nil, opts):open() end
 
   Fyler.toggle = function(opts) finder.instance_get(nil, opts):toggle() end

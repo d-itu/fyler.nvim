@@ -187,8 +187,8 @@ end
 ---@nodiscard
 H.buffer_name = function(inst)
   local scheme_name = inst.opts.scheme
-  local root_path = inst.opts.root_path
-  return ('fyler-%s://%s'):format(scheme_name, root_path)
+  local pseudo_root_path = inst.state.pseudo_root_path
+  return ('fyler-%s://%s'):format(scheme_name, pseudo_root_path)
 end
 
 ---@return integer
@@ -306,7 +306,7 @@ end
 ---@nodiscard
 H.normalize_opts = function(opts)
   opts = opts or {}
-  opts.root_path = libpath.to_normalize(opts.root_path or vim.fn.getcwd())
+  opts.root_path = libpath.to_normalize(opts.root_path or vim.fn.getcwd(-1, -1))
   opts.scheme = opts.scheme or 'file'
   local kind = opts.kind or config.DATA.kind
   local kind_config = config.DATA.kind_presets[kind]
@@ -942,8 +942,20 @@ function Finder:mutate()
           end
 
           util.set_buf_option(self.buf_id, 'modified', false)
-          self:refresh()
 
+          local cursor_target = nil
+          for i = #ordered_actions, 1, -1 do
+            local action = ordered_actions[i]
+            if not (action.name == 'delete' or action.name == 'trash') then
+              cursor_target = action.dst
+              break
+            end
+          end
+          if cursor_target then
+            self:follow({ target_path = cursor_target })
+          else
+            self:refresh()
+          end
           local hooks = config.DATA.hooks
           for _, action in ipairs(ordered_actions) do
             if action.name == 'delete' then
@@ -1049,6 +1061,7 @@ function Finder:open()
     end, 'Ensure cursor boundary')
   end
 
+  vim.cmd.tcd(self.opts.root_path)
   local target_path = vim.fn.bufname('#')
   if #target_path > 0 then
     self:follow({ target_path = target_path })
@@ -1196,8 +1209,16 @@ function Finder:visit(args)
   end
 
   if self.state.pseudo_root_path == args.path then return end
+
+  -- NOTE: We need to delete the old buffer because
+  -- renaming the buffer creates another buffer (don't know why?)
+  local old_buf_name = H.buffer_name(self)
   self.state.pseudo_root_path = args.path
   H.state_toggle_expanded(self, args.path, true)
+  vim.cmd.tcd(args.path)
+  vim.api.nvim_buf_set_name(self.buf_id, H.buffer_name(self))
+  local old_buf_id = vim.fn.bufnr('^' .. old_buf_name .. '$')
+  if util.buf_valid(old_buf_id) then vim.api.nvim_buf_delete(old_buf_id, { force = true }) end
   self:refresh()
 end
 
