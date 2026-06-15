@@ -40,6 +40,24 @@ for _, name in ipairs({
   uv[name] = await(vim.uv[name])
 end
 
+local msg_hints = {
+  EEXIST = 'already exists',
+  ENOENT = 'does not exist',
+  EACCES = 'permission denied',
+  ENOTDIR = 'not a directory',
+  EISDIR = 'is a directory',
+  ENOTEMPTY = 'is not empty',
+  ENOSPC = 'not enough disk space',
+  EROFS = 'filesystem is read-only',
+  EXDEV = 'cannot move across filesystems',
+}
+
+local function build_simple_msg(err)
+  local code, path = tostring(err):match('(%u+): [^:]+: (.+)$')
+  if not code then return tostring(err) end
+  return path .. ' ' .. (msg_hints[code] or code)
+end
+
 local fs = function(name, ...)
   local err, result = uv[name](...)
   if err then error(('%s: %s'):format(name, err)) end
@@ -48,11 +66,15 @@ end
 
 local run = function(fn, cb)
   local co = coroutine.create(function()
-    local ok, err = pcall(fn)
-    cb(ok and nil or err)
+    local ok, err_msg = pcall(fn)
+    if ok then
+      cb(nil)
+    else
+      cb(build_simple_msg(err_msg))
+    end
   end)
-  local ok, err = coroutine.resume(co)
-  if not ok then cb(err) end
+  local ok, err_msg = coroutine.resume(co)
+  if not ok then cb(build_simple_msg(err_msg)) end
 end
 
 H.delete_recursive = function(path)
@@ -163,12 +185,14 @@ local action_handlers = {
 }
 
 M.fs_mutate = function(actions, cb)
+  local current_action
   run(function()
     for _, action in ipairs(actions) do
+      current_action = action
       local handler = action_handlers[action.name]
       if handler then handler(action) end
     end
-  end, cb)
+  end, function(err_msg) cb(err_msg and ('Failed to ' .. current_action.name .. ': ' .. err_msg)) end)
 end
 
 return M
