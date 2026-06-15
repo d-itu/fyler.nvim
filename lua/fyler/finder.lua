@@ -89,6 +89,10 @@ local store = {} ---@type table<integer, fyler.FSEntry>
 local path_to_id = {} ---@type table<string, integer>
 local next_id = 1
 
+local build_fs_action_id = function(fs_action)
+  return string.format('%s | %s | %s', fs_action.name, fs_action.src, fs_action.dst)
+end
+
 ---@param fs_entry table
 ---@return integer
 local store_register = function(fs_entry)
@@ -610,6 +614,10 @@ H.compute_fs_actions = function(inst, id_to_path, buf_lines)
           current_path = segment_path .. '/'
         end
       end
+      if is_dir then
+        print(libpath.do_join(parent_path, name))
+        table.insert(stack, { path = libpath.do_join(parent_path, name), depth = depth })
+      end
     end
   end)
 
@@ -629,6 +637,16 @@ H.compute_fs_actions = function(inst, id_to_path, buf_lines)
       end
     end
   end
+
+  local seen = {}
+  fs_actions = vim
+    .iter(fs_actions)
+    :filter(function(fs_action)
+      if seen[build_fs_action_id(fs_action)] then return false end
+      seen[build_fs_action_id(fs_action)] = true
+      return true
+    end)
+    :totable()
 
   return fs_actions, errors
 end
@@ -704,10 +722,8 @@ end
 ---@param edge_add fun(u: fyler.Action, v: fyler.Action)
 ---@param errors string[]
 H.handle_action_pair = function(left, right, edge_add, errors)
-  local action_id = function(a) return string.format('%s | %s | %s', a.name, a.src, a.dst) end
-
-  if action_id(left) == action_id(right) then return end
-  if action_id(left) > action_id(right) then return end
+  if build_fs_action_id(left) == build_fs_action_id(right) then return end
+  if build_fs_action_id(left) > build_fs_action_id(right) then return end
 
   local P = { create = 1, delete = 2, copy = 3, move = 4 }
   local function sorted_pair()
@@ -778,10 +794,6 @@ end
 ---@return table
 H.build_action_dependency_graph = function(fs_actions, pseudo_root_path, errors)
   local trie_root = { children = {} }
-
-  local build_fs_action_id = function(fs_action)
-    return string.format('%s | %s | %s', fs_action.name, fs_action.src, fs_action.dst)
-  end
 
   vim.iter(fs_actions):each(function(action)
     local splitted_path =
